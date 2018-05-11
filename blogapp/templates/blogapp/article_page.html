@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ArticlePage</title>
+</head>
+<body>
+<h1>{{ article.title }}</h1>
+<br/>
+<h2>{{ article.content }}</h2>
+<br/>
+<h3>{{ article.release_time }}</h3>
+<br/>
+<h4>{{ article.counter }}</h4>
+<br/>
+<form action="{% url 'blog:vote' article.title %}" method="post">
+    {% csrf_token %}
+    <label for="sub">提交</label>
+    <input type="submit" id="sub" value="提交" />
+</form>
+{#<a href="">赞</a>#}
+</body>
+</html>

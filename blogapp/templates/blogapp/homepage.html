@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Homepage</title>
+</head>
+{#<script type="text/javascript">#}
+{#    function test(){#}
+{#        title = document.getElementById("title").value;#}
+{#        alert(title);#}
+{#    }#}
+{#</script>#}
+<body>
+    <form action="{% url 'blog:vote_all'  %}" method="post">
+        {% csrf_token %}
+        {{ title_obj.vote_title }}
+{#        <input id="title" type="text" name="vote_title" value="title">#}
+        <input type="submit" value="提交" >
+        {{ errors_obj.vote_title.0 }}
+    </form>
+    {% for article in articles %}
+        <a href="{% url 'blog:article_page' article.title %}">{{ article.title }}</a>
+        <h1>{{ article.counter }}</h1>
+    <br/>
+    {% endfor %}
+    <h1>上传文件</h1>
+        <form action="{% url 'blog:upload' %}" role="form" method="post" enctype="multipart/form-data" accept-charset="utf-8">
+            {% csrf_token %}
+            <input type="file" name="file">
+            <input type="submit" value="上传">
+        </form>
+    <h1><a href="{% url 'blog:download' %}">下载文件</a></h1>
+
+
+</body>
+</html>

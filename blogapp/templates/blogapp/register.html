@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>注册</title>
+</head>
+<body>
+    <form action="{% url:'register' %}" method="post" accept-charset="UTF-8" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ userinfo.as_ul}}
+
+        <input type="submit" value="注册">
+    </form>
+</body>
+</html>
