@@ -25,4 +25,5 @@ urlpatterns = [
     url(r'^$', bv.homepage),
     url(r'^login/$', bv.login, name="login"),
     url(r'^register/$', bv.register, name="register"),
+    url(r'logout/$', bv.logout, name='logout'),
 ]

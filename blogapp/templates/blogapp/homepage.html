@@ -11,6 +11,15 @@
 {#    }#}
 {#</script>#}
 <body>
+    {{ user_status.status }}
+    {{ user_status.username }}
+    {% if userinfo.status == True %}
+        {{ userinfo.username }}
+        <a href="{% url 'logout' %}">注销</a>
+    {% endif %}
+    {% if userinfo.status != True  %}
+        <a href="{% url 'login' %}">登录</a>
+    {% endif %}
     <form action="{% url 'blog:vote_all'  %}" method="post">
         {% csrf_token %}
         {{ title_obj.vote_title }}

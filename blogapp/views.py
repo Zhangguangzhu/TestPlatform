@@ -22,10 +22,14 @@ from django.contrib.auth.decorators import login_required
 def index(Request):
 	return HttpResponse('hello')
 
+@login_required #setting 中设置变量LOGIN_URL = '/login/',不使用装饰器可通过request.user.is_authenticate()判断
 def homepage(Request):
+	userinfo = {}
+	userinfo['username'] = Request.user.username
+	userinfo['status'] = True
 	title_obj = forms.VoteTitle()
 	articles = models.Article.objects.all()
-	return render(Request, 'blogapp/homepage.html', {'articles': articles,'title_obj':title_obj})
+	return render(Request, 'blogapp/homepage.html', {'articles': articles,'title_obj':title_obj,'userinfo':userinfo})
 
 
 def article_page(request, article_prikey):
@@ -125,8 +129,9 @@ def download_page(request):
 
 def login(request):
 	context = {}
+	userinfo = {}
 	if request.method == 'POST':
-		form = forms.UserInfo(request.POST)
+		form = forms.Userlogin(request.POST)
 		if form.is_valid():
 			username = form.cleaned_data['username']
 			passwd = form.cleaned_data['passwd']
@@ -136,18 +141,22 @@ def login(request):
 				request.session['username'] = username
 				return HttpResponseRedirect(reverse('blog:homepage'))
 			else:
-				context = {'isLogin':False,'passwd':False}
-				return render(request, 'blogapp/login.html', context)
+				userinfo = forms.Userlogin()
+				context = {'isLogin':False,'passwd':False,'tips':"用户不存在或密码错误"}
+				return render(request, 'blogapp/login.html', {'userinfo':userinfo,'context':context})
+		else:
+			userinfo = forms.Userlogin()
+			errors =  form.errors
+			context = {'isLogin':False,'passwd':False}
+			return render(request, 'blogapp/login.html', {'errors':errors, 'userinfo':userinfo})
 	else:
-		userinfo = forms.UserInfo()
-		context = {'isLogin': False, 'passwd':True}
-	return render(request, 'blogapp/login.html', {'userinfo':userinfo})
-
+		userinfo = forms.Userlogin()
+		return render(request,'blogapp/login.html',{'userinfo':userinfo})
 
 def register(request):
 	context = {}
 	if request.method == "POST":
-		form = forms.UserInfo(request.POST)
+		form = forms.UserReg(request.POST)
 		if form.is_valid():
 			username = form.cleaned_data['username']
 			passwd = form.cleaned_data['passwd']
@@ -162,5 +171,9 @@ def register(request):
 			return render(request, 'blogapp/homepage.html')
 	else:
 		# context = {'isLogin':False}
-		userinfo = forms.UserInfo()
+		userinfo = forms.UserReg()
 		return render(request, 'blogapp/register.html', {'userinfo':userinfo})
+
+def logout(request):
+	auth.logout(request)
+	return HttpResponseRedirect(reverse('blog:homepage'))
