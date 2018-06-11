@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import os
 import sys
-
+import threading
+# from websocket import WebSocketServer
+import subprocess
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myblog.settings")
     try:
@@ -19,4 +21,8 @@ if __name__ == "__main__":
                 "forget to activate a virtual environment?"
             )
         raise
+    # server = WebSocketServer.WebsocketServer()
+    # websocketserver = threading.Thread(target=server.start)
+    subprocess.Popen('python3.5 websocket/WebSocketServer.py', shell=True)
     execute_from_command_line(sys.argv)
+    print('end')

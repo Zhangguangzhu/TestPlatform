@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+import struct, socket, threading, hashlib, base64, queue
+
+import time
+
+import select
+
+clientList = {}
+
+
+def packData(message):
+	# 先添加第一个字节\x81
+	header = bytes()
+	lenth = len(message.encode())
+	header += struct.pack('B', 129)
+	# 判断数据长度，并添加
+	if lenth <= 125:
+		header += struct.pack('B', lenth)
+	elif lenth <= 65535:
+		header += struct.pack('B', 126)
+		header += struct.pack('!H', lenth)
+	elif lenth <= (2 ^ 64 - 1):
+		header += struct.pack('B', 127)
+		header += struct.pack('!Q', lenth)
+	else:
+		print('msg too long')
+		return
+	return header + bytes(message, encoding='utf-8')
+
+
+def sendmessage(clientsocket, message):
+	msg = packData(message)
+	clientsocket.send(msg)
+
+def boardcast(message):
+	msg = packData(message)
+	for client in clientList:
+		client.send(msg)
+
+class Websocket(threading.Thread):
+
+	def __init__(self, clientsocket, q):
+		# threading.Thread.__init__(self)
+		super(Websocket, self).__init__()
+		self.clientsocket = clientsocket
+		self.q = q
+
+	def parseData(self, clientsocket, data):
+		enstring = b''
+		cnstringlist = []
+		cnstring = ''
+		if len(data) < 6:
+			return ''
+		elif data[0] == 0x88:
+			return ''
+		else:
+			res = data[1] & 0x7f
+			if res == 0x7e:
+				step = 4
+			elif res == 0x7f:
+				step = 10
+			else:
+				step = 2
+			mask = data[step:step+4]
+			msgdata = data[step+4:]
+			for n, c in enumerate(msgdata):
+				string = chr(c ^ mask[n % 4])
+				if len(string.encode()) == 1:
+					enstring +=	string.encode()
+				else:
+					enstring += b'%s'
+					cnstringlist.append(ord(string))
+			if len(cnstringlist) >= 3:
+				count = int(len(cnstringlist) / 3)
+				for i in range(count):
+					j = i * 3
+					b = bytes([cnstringlist[j], cnstringlist[1+j], cnstringlist[2+j]])
+					cnstring += b.decode()
+					# print(cnstring)
+				enstring = enstring.replace(b'%s%s%s', b'%s').decode()
+				finalstr = enstring % tuple(cnstring)
+			else:
+				finalstr = enstring.decode()
+			return finalstr
+
+
+	def handshaken(self):
+		headers = {}
+		recvdata = self.clientsocket.recv(1024).decode()
+		for line in recvdata.split('\r\n')[1:]:
+			if len(line) > 1:
+				key, value = line.split(': ', 1)
+				headers[key] = value
+		Sec_WebSocket_Key = headers['Sec-WebSocket-Key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+		responseKey = 'Sec-WebSocket-Accept: ' + base64.b64encode(hashlib.sha1(bytes(Sec_WebSocket_Key, encoding='utf-8')).digest()).decode() + '\r\n'
+		self.clientsocket.send(bytes("HTTP/1.1 101 Web Socket Protocol Handshake\r\n", encoding="utf8"))
+		self.clientsocket.send(bytes("Upgrade: websocket\r\n", encoding="utf8"))
+		self.clientsocket.send(bytes(responseKey, encoding="utf8"))
+		self.clientsocket.send(bytes("Connection: Upgrade\r\n\r\n", encoding="utf8"))
+		print('send the hand shake data')
+
+
+	def run(self):
+		self.handshaken()
+		while True:
+			recvData = self.clientsocket.recv(1024)
+			msgData = self.parseData(self.clientsocket, recvData)
+			if not msgData:
+				self.q.put(self.clientsocket)
+				self.clientsocket.close()
+				break
+			else:
+				# print(msgData)
+				# sendmessage(self.clientsocket, msgData)
+				self.q.put(msgData)
+
+class WebsocketServer(object):
+
+	def __init__(self):
+		self.Host = ''
+		self.Port = 9999
+		self.SerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.SerSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.SerSocket.bind((self.Host, self.Port))
+		self.SerSocket.listen(5)
+		# self.clientList = {}
+		self.q = queue.Queue()
+		self.inputs = [self.SerSocket]
+		self.outputs = []
+		self.errors = [self.SerSocket]
+
+	def watchclient(self):
+		while True:
+			time.sleep(1)
+			if not self.q.empty():
+				data = self.q.get()
+				print(type(data))
+				if isinstance(data, socket.socket):
+					del clientList[data]
+				else:
+					boardcast(data)
+
+	def start(self):
+		# watchThread = threading.Thread(target=self.watchclient)
+		# watchThread.start()
+		try:
+			print('waiting for connection!')
+			while True:
+				readable, writable, exceptions = select.select(self.inputs, self.outputs, self.errors, 1)
+				if readable:
+					clientsocket, clientaddr = self.SerSocket.accept()
+					print('connection from %s:%s' % (clientaddr[0], clientaddr[1]))
+					clientThread = Websocket(clientsocket, self.q)
+					clientList[clientsocket] = clientaddr
+					print('online num: %s' % len(clientList))
+					clientThread.start()
+				elif not self.q.empty():
+					data = self.q.get()
+					if isinstance(data, socket.socket):
+						print('quit:', clientList[data])
+						del clientList[data]
+						print('online num: %s' % len(clientList))
+					else:
+						print('boardcat msg:', data)
+						boardcast(data)
+		except:
+			self.SerSocket.close()
+			print('websocket exit')
+
+
+if __name__ == '__main__':
+	print('111111111111111')
+	server = WebsocketServer()
+	print("!!!!!!!!!!!!!!!!")
+	server.start()
+	print('???????????????')

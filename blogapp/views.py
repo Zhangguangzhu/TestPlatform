@@ -59,7 +59,7 @@ def vote_all_result(request):
 			article.counter += 1
 			article.save()
 		else:
-			print 'error'
+			# print 'error'
 			errors_obj = form_post.errors
 			# print form_post.errors["vote_title"]
 			# print form_post.errors["vote_title"][0]
@@ -68,11 +68,12 @@ def vote_all_result(request):
 		initial={'vote_title':'标题1'} #列表默认值
 	)
 	articles = models.Article.objects.all()
-	return render(request, 'blogapp/homepage.html', {'articles': articles,'title_obj':title_obj, 'errors_obj': errors_obj})
+	return HttpResponseRedirect(reverse('blog:homepage'))
 
 def upload_file(request):
 	articles = models.Article.objects.all()
 	if request.method == "POST":
+		# print type(request.FILES['file']), len(request.FILES['file']),dir(request.FILES['file'])
 		handle_upload_file(request.FILES['file'], str(request.FILES['file']))
 		return HttpResponse('success')
 
@@ -82,54 +83,42 @@ def handle_upload_file(file, name):
 		os.mkdir(path)
 	with open(os.path.join(path, name), 'wb+') as destination:
 		for chunk in file.chunks():
-			print len(chunk)
+			print(len(chunk))
 			destination.write(chunk)
 
 
-def download_file(request, file):
-	files = {}
-	print file,'***********************'
-	path = '/home/download/'
-	file_path = os.path.join(path, file)
-	if not os.path.exists(path):
-		return HttpResponse('download failed:dir not exists')
-	elif not os.path.exists(file_path):
-		raise Http404('file not exists')
-	if os.path.isdir(file_path):
-		# files = [ file+'/'+filename for filename in os.listdir(file_path) ]
-		for name in os.listdir(file_path):
-			files[name] = file+'/'+name
-		print files
 
-		return render(request, 'blogapp/download_page.html', {'files':files})
+def download(request, file):
+	root_download_path = '/home/download/'
+	request_download_path = request.path.replace('/download/','')
+	download_path = os.path.join(root_download_path, request_download_path)
+	if os.path.exists(download_path):
+		if os.path.isdir(download_path):
+			dir_list = [ (os.path.join(request_download_path, name), name) for name in os.listdir(download_path) if os.path.isdir(os.path.join(download_path,name)) ]
+			file_list = [ (os.path.join(request_download_path, name), name, os.path.getsize(download_path)) for name in os.listdir(download_path) if os.path.isfile(os.path.join(download_path,name)) ]
+			return render(request, 'blogapp/download_page.html', {'dir_list':dir_list,'file_list':file_list})
+		else:
+			response = StreamingHttpResponse(readFile(download_path))
+			response['Content-Type'] = 'multipart/form-data'
+			response['Content-Disposition'] ='attachment;filename="{0}"'.format(file)
+			return response
+
 	else:
-		response = StreamingHttpResponse(readFile(file_path))
-		response['Content-Type'] = 'application/octet-stream'
-		# response['Content-Type'] = 'multipart/form-data'
-		response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file)
-		return response
+		raise Http404('file not exist')
 
 def readFile(filename, chunk_size=512):
 	with open(filename, 'rb') as f:
 		while True:
 			c = f.read(chunk_size)
-			print len(c)
+			print(len(c))
 			if c:
 				yield c
 			else:
 				break
 
-def download_page(request):
-	files = {}
-	path = '/home/download/'
-	for name in os.listdir(path):
-		files[name] = name
-	return render(request, 'blogapp/download_page.html', {'files':files})
 
 
 def login(request):
-	context = {}
-	userinfo = {}
 	if request.method == 'POST':
 		form = forms.Userlogin(request.POST)
 		if form.is_valid():
@@ -137,8 +126,10 @@ def login(request):
 			passwd = form.cleaned_data['passwd']
 			user = authenticate(username=username, password=passwd)
 			if user:
-				auth.login(request, user)
-				request.session['username'] = username
+				if not request.session.get(username):
+					print('not login')
+					auth.login(request, user)
+					request.session['username'] = username
 				return HttpResponseRedirect(reverse('blog:homepage'))
 			else:
 				userinfo = forms.Userlogin()
@@ -160,15 +151,17 @@ def register(request):
 		if form.is_valid():
 			username = form.cleaned_data['username']
 			passwd = form.cleaned_data['passwd']
-			user = auth.authenticate(username=username, password=passwd)
-			if user:
-				context['userExit'] = True
+			# user = auth.authenticate(username=username, password=passwd)
+			# if user:
+			if User.objects.filter(username=username):
+				context['msg'] = '用户名存在'
+				context['userinfo'] = forms.UserReg()
 				return render(request, 'blogapp/register.html', context)
 			user = User.objects.create_user(username=username, password=passwd)
 			user.save()
 			request.session['username'] = username
 			auth.login(request, user)
-			return render(request, 'blogapp/homepage.html')
+			return HttpResponseRedirect(reverse('blog:homepage'))
 	else:
 		# context = {'isLogin':False}
 		userinfo = forms.UserReg()
@@ -177,3 +170,6 @@ def register(request):
 def logout(request):
 	auth.logout(request)
 	return HttpResponseRedirect(reverse('blog:homepage'))
+
+def chatroom(Request):
+	return render(Request, 'blogapp/chatroom.html')

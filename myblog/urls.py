@@ -21,9 +21,11 @@ import blogapp.views as bv
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^blog/', include('blogapp.urls', namespace="blog")),
+    url(r'^blog/', include(('blogapp.urls', 'blogapp'), namespace='blog')),
     url(r'^$', bv.homepage),
-    url(r'^login/$', bv.login, name="login"),
-    url(r'^register/$', bv.register, name="register"),
+    url(r'^login/$', bv.login, name='login'),
+    url(r'^register/$', bv.register, name='register'),
     url(r'logout/$', bv.logout, name='logout'),
+    url(r'^download/(?P<file>.*)', bv.download, name='download'),
+    url(r'^chatroom/$', bv.chatroom, name='chatroom')
 ]

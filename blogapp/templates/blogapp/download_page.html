@@ -5,8 +5,22 @@
     <title>下载</title>
 </head>
 <body>
-    {% for name,path in files.items %}
-         <a href="{% url 'blog:download_file' path %}">{{ name }}</a>
+<table board="1">
+    <tr>
+        <th>名称</th>
+        <th>大小</th>
+    </tr>
+    {% for name in dir_list %}
+        <tr>
+            <td><a href="{% url 'download' name.0 %}">{{ name.1 }}</a></td>
+        </tr>
     {% endfor %}
+    {% for name in file_list %}
+        <tr>
+            <td><a href="{% url 'download' name.0 %}">{{ name.1 }}</a></td>
+            <td>{{ name.2 }}</td>
+        </tr>
+    {% endfor %}
+</table>
 </body>
 </html>
