@@ -7,6 +7,14 @@ import select
 
 clientList = {}
 
+def Singleton(cls):
+
+	_instance = {}
+	def _singleton(*args, **kwargs):
+		if cls not in _instance:
+			_instance[cls] = cls(*args, **kwargs)
+		return _instance[cls]
+	return _singleton
 
 def packData(message):
 	# 先添加第一个字节\x81
@@ -99,25 +107,32 @@ class Websocket(threading.Thread):
 		self.clientsocket.send(bytes("Connection: Upgrade\r\n\r\n", encoding="utf8"))
 		print('send the hand shake data')
 
+	def clientquit(self):
+		self.q.put(self.clientsocket)
+		self.clientsocket.close()
 
 	def run(self):
-		self.handshaken()
+		try:
+			self.handshaken()
+		except:
+			self.clientquit()
+			return
 		while True:
 			recvData = self.clientsocket.recv(1024)
 			msgData = self.parseData(self.clientsocket, recvData)
 			if not msgData:
-				self.q.put(self.clientsocket)
-				self.clientsocket.close()
+				self.clientquit()
 				break
 			else:
 				# print(msgData)
 				# sendmessage(self.clientsocket, msgData)
 				self.q.put(msgData)
 
+@Singleton
 class WebsocketServer(object):
 
 	def __init__(self):
-		self.Host = ''
+		self.Host = '127.0.0.1'
 		self.Port = 9999
 		self.SerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.SerSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -166,6 +181,8 @@ class WebsocketServer(object):
 		except:
 			self.SerSocket.close()
 			print('websocket exit')
+
+
 
 
 if __name__ == '__main__':

@@ -125,14 +125,23 @@ def login(request):
 			username = form.cleaned_data['username']
 			passwd = form.cleaned_data['passwd']
 			user = authenticate(username=username, password=passwd)
+			print(type(user))
+			userinfo = forms.Userlogin()
 			if user:
-				if not request.session.get(username):
-					print('not login')
-					auth.login(request, user)
-					request.session['username'] = username
+				# if request.session.has_key('IS_LOGIN'):
+				if request.session.has_key('username'):
+					if request.session['username'] == username:
+						context = {'tips':"用户已经登录，请勿重复登录"}
+						return render(request, 'blogapp/login.html', {'userinfo':userinfo,'context':context})
+				request.session['username'] = username
+				auth.login(request, user)
 				return HttpResponseRedirect(reverse('blog:homepage'))
+				# else:
+				# 	request.session['IS_LOGIN'] = True
+				# 	request.session['username'] = username
+				# 	auth.login(request, user)
+				# 	return HttpResponseRedirect(reverse('blog:homepage'))
 			else:
-				userinfo = forms.Userlogin()
 				context = {'isLogin':False,'passwd':False,'tips':"用户不存在或密码错误"}
 				return render(request, 'blogapp/login.html', {'userinfo':userinfo,'context':context})
 		else:
@@ -159,7 +168,6 @@ def register(request):
 				return render(request, 'blogapp/register.html', context)
 			user = User.objects.create_user(username=username, password=passwd)
 			user.save()
-			request.session['username'] = username
 			auth.login(request, user)
 			return HttpResponseRedirect(reverse('blog:homepage'))
 	else:
@@ -171,5 +179,7 @@ def logout(request):
 	auth.logout(request)
 	return HttpResponseRedirect(reverse('blog:homepage'))
 
+@login_required()
 def chatroom(Request):
-	return render(Request, 'blogapp/chatroom.html')
+	username = Request.user.username
+	return render(Request, 'blogapp/chatroom.html',{'username':username})
