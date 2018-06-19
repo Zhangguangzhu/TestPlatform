@@ -11,10 +11,8 @@ class VoteTitle(forms.Form):
 
 class Userlogin(forms.Form):
 
-	username = forms.CharField(label="用户名",required=True,min_length=1,max_length=10, widget=forms.TextInput(attrs=
-																											{'placeholder':'用户名'}))
+	username = forms.CharField(label="用户名",required=True,min_length=1,max_length=10, widget=forms.TextInput(attrs={'placeholder':'用户名'}))
 	passwd = forms.CharField(label="密码",required=True, min_length=1, max_length=10,widget=forms.TextInput(attrs={'placeholder':'密码'}))
-	# passwd_check = forms.CharField(label="密码确认",required=True, min_length=1, max_length=10)
 
 class UserReg(forms.Form):
 
@@ -22,3 +20,7 @@ class UserReg(forms.Form):
 	passwd = forms.CharField(label="密码",required=True, min_length=1, max_length=10)
 	passwd_check = forms.CharField(label="密码确认",required=True, min_length=1, max_length=10)
 
+class Article(forms.Form):
+
+	title = forms.CharField(label="标题", required=True, max_length=48,widget=forms.TextInput(attrs={'placeholder':"标题"}))
+	content = forms.CharField(label="内容", widget=forms.Textarea())

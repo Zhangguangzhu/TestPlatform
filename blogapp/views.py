@@ -32,22 +32,50 @@ def homepage(Request):
 	return render(Request, 'blogapp/homepage.html', {'articles': articles,'title_obj':title_obj,'userinfo':userinfo})
 
 
-def article_page(request, article_prikey):
-	article = models.Article.objects.get(pk=article_prikey)
-	return render(request,'blogapp/article_page.html',{'article':article})
+def articlepage(request, article_prikey):
+	if request.method == "POST":
+		article = models.Article.objects.get(pk=article_prikey)
+		article.counter += 1
+		article.save()
+		return HttpResponseRedirect(reverse('blog:article_page', args=(article_prikey,)))
+	else:
+		article = models.Article.objects.get(pk=article_prikey)
+		return render(request,'blogapp/article_page.html',{'article':article})
+
+def myArticle(request):
+	if request.method == "POST":
+		print('nonononon!')
+		article = forms.Article(request.POST)
+		if article.is_valid():
+			title = article.cleaned_data['title']
+			content = article.cleaned_data['content']
+			author = request.user.username
+			models.Article.objects.create(title=title, content=content, author=author)
+			return HttpResponseRedirect(reverse('blog:myArticle'))
+	else:
+		articles = models.Article.objects.filter(author=request.user.username)
+		articleform = forms.Article()
+		return render(request, 'blogapp/myArticle.html', {'articles':articles,'articleform':articleform})
+
+def editArticle(request, article_prikey):
+	article = models.Article.objects.get(author=request.user.username, pk=article_prikey)
+	if article:
+		if request.method == "POST":
+			# article.title = request.POST['title']
+			article.content = request.POST['content']
+			article.save()
+			return HttpResponse("修改成功哦")
+		else:
+			article_form = forms.Article()
+			return render(request, 'blogapp/editarticle.html', {'article':article, 'article_form':article_form})
+	else:
+		raise Http404('访问的内容不存在')
+
+
+
 
 def test_page(Request, num):
 	return HttpResponse('this is test page:%s' % (num))
-
-def re_direct(request):
-	return HttpResponseRedirect(reverse('blog', args=()))
-
-def vote(request, article_prikey):
-	article = models.Article.objects.get(pk=article_prikey)
-	article.counter += 1
-	article.save()
-	return HttpResponseRedirect(reverse('blog:article_page', args=(article_prikey,)))
-	# return HttpResponse("test")
 
 def vote_all_result(request):
 	errors_obj = " "
@@ -151,6 +179,7 @@ def login(request):
 			return render(request, 'blogapp/login.html', {'errors':errors, 'userinfo':userinfo})
 	else:
 		userinfo = forms.Userlogin()
+		# print(userinfo)
 		return render(request,'blogapp/login.html',{'userinfo':userinfo})
 
 def register(request):
@@ -173,6 +202,7 @@ def register(request):
 	else:
 		# context = {'isLogin':False}
 		userinfo = forms.UserReg()
+		# print(userinfo)
 		return render(request, 'blogapp/register.html', {'userinfo':userinfo})
 
 def logout(request):

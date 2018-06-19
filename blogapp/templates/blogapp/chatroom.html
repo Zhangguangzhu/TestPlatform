@@ -9,7 +9,6 @@ var ws
 var username = "{{ username }}"
 function startWS() {
     console.log('start once again');
-    console.log(username)
 //    ws = new WebSocket("ws://echo.websocket.org");
     ws = new WebSocket("ws://127.0.0.1:9999")
     ws.onopen = function (msg) {

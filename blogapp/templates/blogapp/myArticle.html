@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>个人中心</title>
+</head>
+<body>
+{% for article in articles %}
+    {{ article.release_time }}
+    {{ article.title }}
+    <a href="{% url 'blogapp:editArticle' article.title %}">编辑</a></br>
+{% endfor %}
+<form action="{% url 'blogapp:myArticle' %}" method="post" accept-charset="UTF-8">
+    {% csrf_token %}
+    {{ articleform.as_ul }}
+    <input type="submit" value="提交">
+</form>
+
+</body>
+</html>

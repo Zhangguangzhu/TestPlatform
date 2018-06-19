@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑</title>
+</head>
+
+<body>
+<form action="{% url 'blog:editArticle' title %}" accept-charset="UTF-8" method="post">
+    {% csrf_token %}
+    {{ article_form.as_ul }}
+    <input type="submit" value="确定修改">
+</form>
+<script type="text/javascript">
+var title = "{{ article.title }}";
+var content = "{{ article.content }}";
+function loadtext() {
+    document.getElementById('id_title').value = title;
+    document.getElementById('id_content').value = content;
+}
+window.onload = loadtext();
+</script>
+</body>
+</html>
